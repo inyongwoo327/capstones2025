@@ -15,5 +15,7 @@
 - Setup AWS CodeCommit using IAM Git credentials (AWS access and secret keys)
 - Clarify script language for testing and linting
 (4) Sample application development
-
+- Create a hello world level application
+- node.js
+- TypeScript with Vue.js
 

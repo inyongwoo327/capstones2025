@@ -53,16 +53,20 @@
 # How to run project with Terraform commands
 (1) 
 Navigate to the terraform directory
+
 cd terraform
 
 (2) 
 Initialize terraform
+
 terraform init
 
 (3) 
 Preview changes
+
 terraform plan
 
 (4) 
 Apply changes (Deploy aws infrastructure)
+
 terraform apply

@@ -58,6 +58,7 @@ cd terraform
 (2) 
 Initialize terraform
 terraform init
+
 (3) 
 Preview changes
 terraform plan

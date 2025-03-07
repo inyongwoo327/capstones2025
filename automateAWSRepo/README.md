@@ -18,33 +18,35 @@
 (4) Architecture and repo structures
 - Architecture diagram combining terraform, aws code repo, CI/CD, cloud resources, etc.   
 - Terraform & repository structure
+- Prepare code updates in GitHub
 - Decide repositories names such as:
     - frontend
     - backend
-- Prepare code updates in GitHub
-- Decide which cloud infra resources to include
 - Do we really need CloudFormation?
     - Terraform can deploy AWS resources, and terraform workspace can divide DEV and PROD.
     - CloudFormation may not be necessary?
+- Decide which aws resources to include
+- Default VPC and subnet will be used for ec2?
 - Clarify where to save buildspec (frontend and backend repos) files for CodeBuild
-- No Dockerfiles
+- How many buildspec files needed?
+- No Dockerfiles?
 
 (5) CodeCommit setup
 - Clarify the AWS CodeCommit repositories structures and names 
 - Setup AWS CodeCommit using IAM Git credentials (AWS access and secret keys)
 
 (6) CodeBuild setup
-- Clarify script language and tool for testing and linting
+- Clarify script language and tool for testing and linting??
 - Buildspec yaml files for:
     - frontend
     - backend
 - Test cases (if have time)
-    - Python
+    - Unit tests (Python)?
     - Pylint
 
 (7) CodePipeline setup (CodeDeploy)
 - backend
-    - Elastic Beanstalk & EC2
+    - Elastic Beanstalk & EC2???
 - frontend
     - s3 and CloudFront (for hosting)
 - No ECS, Dockerfiles, Docker images (More costs and complicated implementations)

@@ -20,8 +20,8 @@
 - Terraform & repository structure
 - Prepare code updates in GitHub
 - Decide repositories names such as:
-    - frontend
-    - backend
+    - frontend_a
+    - backend_a
 - Do we really need CloudFormation?
     - Terraform can deploy AWS resources, and terraform workspace can divide DEV and PROD.
     - CloudFormation may not be necessary?
@@ -40,13 +40,11 @@
 - Buildspec yaml files for:
     - frontend
     - backend
-- Test cases (if have time)
-    - Unit tests (Python)?
-    - Pylint
 
 (7) CodePipeline setup (CodeDeploy)
 - backend
     - Elastic Beanstalk & EC2???
+    - Find way to take off EC2 (or Beanstalk)
 - frontend
     - s3 and CloudFront (for hosting)
 - No ECS, Dockerfiles, Docker images (More costs and complicated implementations)

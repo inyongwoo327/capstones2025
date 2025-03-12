@@ -61,5 +61,5 @@ variable "lambda_handler" {
 variable "iam_role" {
   description = "IAM Role for AWS services"
   type        = string
-  default     = "arn:aws:iam::590184075527:role/role_for_codepipeline"
+  default     = "arn:aws:iam::590184075527:role/GitHubActionsRole"
 }

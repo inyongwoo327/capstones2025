@@ -1,8 +1,7 @@
-resource "aws_s3_bucket" "frontend_bucket" {
-  bucket = "frontend-app-${terraform.workspace}"
+resource "random_id" "frontend_suffix" {
+  byte_length = 4
+}
 
-  tags = {
-    Name        = "Frontend S3 Bucket"
-    Environment = terraform.workspace
-  }
+resource "aws_s3_bucket" "frontend_bucket" {
+  bucket = "frontend-app-${terraform.workspace}-${random_id.frontend_suffix.hex}"
 }

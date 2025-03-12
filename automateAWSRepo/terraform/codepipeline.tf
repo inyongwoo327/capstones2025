@@ -1,6 +1,6 @@
 resource "aws_codepipeline" "app_pipeline" {
-  name     = "full-app-pipeline-${terraform.workspace}"
-  role_arn = "arn:aws:iam::590184075527:role/role_for_codepipeline"
+  name     = local.codepipeline_name
+  role_arn = var.iam_role
 
   artifact_store {
     location = aws_s3_bucket.terraform_state.bucket
@@ -18,7 +18,7 @@ resource "aws_codepipeline" "app_pipeline" {
       version          = "1"
       output_artifacts = ["SourceOutput"]
       configuration = {
-        RepositoryName = aws_codecommit_repository.app_repo.repository_name
+        RepositoryName = local.codecommit_repo
         BranchName     = "main"
       }
     }
@@ -36,23 +36,37 @@ resource "aws_codepipeline" "app_pipeline" {
       input_artifacts  = ["SourceOutput"]
       output_artifacts = ["TestOutput"]
       configuration = {
-        ProjectName = aws_codebuild_project.backend_codebuild.name
+        ProjectName = local.codebuild_name
       }
     }
   }
 
   # Deploy Backend to AWS Lambda
+  # stage {
+  #   name = "DeployBackend"
+  #   action {
+  #     name            = "DeployLambda"
+  #     category        = "Deploy"
+  #     owner           = "AWS"
+  #     provider        = "Lambda"
+  #     version         = "1"
+  #     input_artifacts = ["TestOutput"]
+  #     configuration = {
+  #       FunctionName = local.lambda_function_name
+  #     }
+  #   }
+  # }
   stage {
     name = "DeployBackend"
     action {
-      name            = "DeployLambda"
-      category        = "Deploy"
-      owner           = "AWS"
-      provider        = "Lambda"
-      version         = "1"
+      name     = "DeployLambda"
+      category = "Build"
+      provider = "CodeBuild"
+      owner    = "AWS"
+      version  = "1"
       input_artifacts = ["TestOutput"]
       configuration = {
-        FunctionName = aws_lambda_function.backend_lambda.function_name
+        ProjectName = aws_codebuild_project.lambda_codebuild.name
       }
     }
   }

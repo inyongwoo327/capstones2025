@@ -1,6 +1,6 @@
 resource "aws_codebuild_project" "backend_codebuild" {
-  name         = "backend-build-${terraform.workspace}"
-  service_role = "arn:aws:iam::590184075527:role/role_for_codepipeline"
+  name         = local.codebuild_name
+  service_role = var.iam_role
 
   artifacts {
     type = "NO_ARTIFACTS"

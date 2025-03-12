@@ -1,8 +1,7 @@
-resource "aws_s3_bucket" "lambda_bucket" {
-  bucket = "lambda-deployment-${terraform.workspace}"
+resource "random_id" "lambda_suffix" {
+  byte_length = 4
+}
 
-  tags = {
-    Name        = "Lambda Deployment Bucket"
-    Environment = terraform.workspace
-  }
+resource "aws_s3_bucket" "lambda_bucket" {
+  bucket = "lambda-deployment-${terraform.workspace}-${random_id.lambda_suffix.hex}"
 }

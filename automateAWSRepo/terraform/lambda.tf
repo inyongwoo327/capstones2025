@@ -1,15 +1,15 @@
 resource "aws_lambda_function" "backend_lambda" {
-  function_name = "backend-lambda-${terraform.workspace}"
-  role          = "arn:aws:iam::590184075527:role/role_for_codepipeline"
-  handler       = "index.handler"
-  runtime       = "nodejs20.x"
+  function_name = local.lambda_function_name
+  role          = var.iam_role
+  handler       = var.lambda_handler
+  runtime       = var.lambda_runtime
 
-  s3_bucket = aws_s3_bucket.lambda_bucket.bucket
+  s3_bucket = aws_s3_bucket.lambda_bucket.id
   s3_key    = "backend.zip"
 
   environment {
     variables = {
-      ENV = terraform.workspace
+      ENVIRONMENT = local.environment
     }
   }
 }

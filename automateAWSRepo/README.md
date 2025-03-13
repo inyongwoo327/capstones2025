@@ -29,25 +29,23 @@
     - Terraform can deploy AWS resources, and terraform workspace can divide DEV and PROD.
     - CloudFormation may not be necessary?
 - Decide which aws resources to include
-- Default VPC and subnet will be used for ec2?
-- Clarify where to save buildspec (frontend and backend repos) files for CodeBuild
-- How many buildspec files needed?
+- Clarify where to save workflow files.
+- How many workflow files do we need?
 - No Dockerfiles
 
-(5) CodeCommit setup
-- Clarify the AWS CodeCommit repositories structures and names 
-- Setup AWS CodeCommit using IAM Git credentials (AWS access and secret keys)
-
-(6) CodeBuild setup
+(5) GitHub Actions setup
+- Clarify the repositories structures and names 
+- Setup AWS credentials and role with GitHub actions access (AWS access and secret keys)
 - Test case ran by buildspec
   - backend: Python
   - frontend: jest
   - linting (ESLint)
-- Buildspec yaml files for:
-    - frontend
-    - backend
+- yaml files for:
+    - frontend (node server.js)
+    - backend (npm run serve)
+    - terraform apply
 
-(7) CodePipeline setup (CodeDeploy)
+(7) deployment setup
 - backend
     - No need ElasticBeanstalk and EC2
     - Lambda and S3
@@ -63,12 +61,17 @@ Navigate to the terraform directory
 cd terraform
 
 (2) 
-Initialize terraform
+If workspace has not created, and it needs terraform init, then initialize terraform first
 
-terraform init
+terraform init -reconfigure -backend-config="key=env/dev/terraform.tfstate"
+
+Then create workspaces for dev and prod
+
+Then run:
+terraform init -reconfigure -backend-config="key=env/prod/terraform.tfstate"
 
 (3) 
-Preview changes
+Preview changes at each workspace
 
 terraform plan
 

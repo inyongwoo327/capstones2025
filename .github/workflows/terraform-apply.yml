@@ -33,7 +33,7 @@ jobs:
         with:
           role-to-assume: "arn:aws:iam::590184075527:role/GitHubActionsRole"
           aws-region: "eu-west-1"
-          role-session-nameP: GitHubActionsOIDCSession
+          role-session-name: GitHubActionsOIDCSession
       
       - name: Verify Terraform
         run: aws sts get-caller-identity

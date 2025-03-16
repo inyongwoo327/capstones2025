@@ -22,6 +22,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+            
+      - name: Debug File Structure
+        run: ls -R
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -40,7 +45,7 @@ jobs:
       
       - name: Terraform Init
         run: |
-          cd capstones2025/automateAWSRepo/terraform
+          cd automateAWSRepo/terraform
           terraform init -backend-config="key=env/${{ matrix.env }}/terraform.tfstate"
       
       - name: Terraform Format
@@ -55,4 +60,4 @@ jobs:
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply --auto-approve
+        run: timeout 300 terraform apply --auto-approve

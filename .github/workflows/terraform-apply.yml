@@ -24,9 +24,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-            
+
       - name: Debug File Structure
-        run: ls -R
+        run: |
+          echo "Listing all files in the repository:"
+          ls -R
+          echo "Listing .tf files in automateAWSRepo/terraform:"
+          ls automateAWSRepo/terraform/*.tf || echo "No .tf files found"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -39,25 +43,28 @@ jobs:
           role-to-assume: "arn:aws:iam::590184075527:role/GitHubActionsRole"
           aws-region: "eu-west-1"
           role-session-name: GitHubActionsOIDCSession
-      
+
       - name: Verify Terraform
         run: aws sts get-caller-identity
-      
+
       - name: Terraform Init
-        run: |
-          cd automateAWSRepo/terraform
-          terraform init -backend-config="key=env/${{ matrix.env }}/terraform.tfstate"
-      
+        run: terraform init -backend-config="key=env/${{ matrix.env }}/terraform.tfstate"
+        working-directory: automateAWSRepo/terraform
+
       - name: Terraform Format
         run: terraform fmt -check
-      
+        working-directory: automateAWSRepo/terraform
+
       - name: Select Workspace
         run: |
           terraform workspace select ${{ matrix.env }} || terraform workspace new ${{ matrix.env }}
+        working-directory: automateAWSRepo/terraform
 
       - name: Terraform Plan
         run: terraform plan
+        working-directory: automateAWSRepo/terraform
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: timeout 300 terraform apply --auto-approve
+        working-directory: automateAWSRepo/terraform

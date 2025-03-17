@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  TF_WORKSPACE: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+
 jobs:
   terraform:
     name: "Terraform Apply"

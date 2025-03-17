@@ -6,19 +6,18 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  TF_WORKSPACE: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
-
 jobs:
   terraform:
     name: "Terraform Apply"
     runs-on: ubuntu-latest
     env:
       AWS_REGION: "eu-west-1"
-      TF_VAR_environment: ${{ matrix.env }}
     strategy:
       matrix:
         env: [dev, prod]
+      # Run environments sequentially to avoid workspace conflicts
+      fail-fast: false
+      max-parallel: 1
     permissions:
       id-token: write
       contents: read
@@ -39,6 +38,13 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.10.5
+      
+      - name: Debug Terraform Installation
+        run: |
+          echo "Terraform version:"
+          terraform --version || echo "Terraform not found"
+          echo "PATH:"
+          echo $PATH
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -50,17 +56,17 @@ jobs:
       - name: Verify Terraform
         run: aws sts get-caller-identity
 
+      - name: Select Workspace
+        run: |
+          terraform workspace select ${{ matrix.env }} || terraform workspace new ${{ matrix.env }}
+        working-directory: automateAWSRepo/terraform
+
       - name: Terraform Init
         run: terraform init -backend-config="key=env/${{ matrix.env }}/terraform.tfstate"
         working-directory: automateAWSRepo/terraform
 
       - name: Terraform Format
         run: terraform fmt -check
-        working-directory: automateAWSRepo/terraform
-
-      - name: Select Workspace
-        run: |
-          terraform workspace select ${{ matrix.env }} || terraform workspace new ${{ matrix.env }}
         working-directory: automateAWSRepo/terraform
 
       - name: Terraform Plan

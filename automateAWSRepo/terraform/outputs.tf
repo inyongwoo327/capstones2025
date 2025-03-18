@@ -17,14 +17,6 @@ output "frontend_cloudfront_url" {
   value       = "https://${aws_cloudfront_distribution.frontend.domain_name}"
 }
 
-output "backend_bucket_suffix" {
-  value = random_id.backend_suffix.hex
-}
-
-output "frontend_bucket_suffix" {
-  value = random_id.frontend_suffix.hex
-}
-
 output "cloudfront_distribution_id" {
   value = aws_cloudfront_distribution.frontend.id
 }

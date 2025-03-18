@@ -60,12 +60,12 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect    = "Allow"
+        Effect = "Allow"
         Principal = {
           AWS = aws_cloudfront_origin_access_identity.frontend.iam_arn
         }
-        Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.frontend_bucket.arn}/*"
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.frontend_bucket.arn}/*"
       }
     ]
   })
@@ -112,7 +112,7 @@ resource "aws_s3_bucket_policy" "backend_policy" {
         Principal = {
           AWS = aws_iam_role.lambda_exec.arn
         }
-        Action = "s3:GetObject"
+        Action   = "s3:GetObject"
         Resource = "${aws_s3_bucket.backend_bucket.arn}/*"
       }
     ]

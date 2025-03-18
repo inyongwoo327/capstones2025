@@ -1,4 +1,4 @@
-name: Terraform Apply
+name: Terraform Apply and Cleanup
 
 on:
   push:
@@ -7,17 +7,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  terraform:
-    name: "Terraform Apply"
+  terraform-dev:
+    name: "Terraform Apply (dev)"
     runs-on: ubuntu-latest
     env:
       AWS_REGION: "eu-west-1"
     strategy:
       matrix:
-        env: [dev, prod]
-      # Run environments sequentially to avoid workspace conflicts
-      fail-fast: false
-      max-parallel: 1
+        env: [dev]
     permissions:
       id-token: write
       contents: read
@@ -38,7 +35,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.10.5
-      
+
       - name: Debug Terraform Installation
         run: |
           echo "Terraform version:"
@@ -57,7 +54,7 @@ jobs:
         run: aws sts get-caller-identity
 
       - name: Terraform Init
-        run: terraform init -backend-config="key=env/${{ matrix.env }}/terraform.tfstate"
+        run: terraform init -backend-config="key=env/${{ matrix.env }}/terraform.tfstate" -reconfigure
         working-directory: automateAWSRepo/terraform
 
       - name: Select Workspace
@@ -75,5 +72,86 @@ jobs:
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: timeout 300 terraform apply --auto-approve
+        run: timeout 600 terraform apply --auto-approve
+        working-directory: automateAWSRepo/terraform
+        continue-on-error: true  # Allow the workflow to continue to the destroy step on failure
+
+      - name: Terraform Destroy on Apply Failure
+        if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform destroy --auto-approve
+        working-directory: automateAWSRepo/terraform
+
+  terraform-prod:
+    name: "Terraform Apply (prod)"
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: "eu-west-1"
+    needs: terraform-dev
+    strategy:
+      matrix:
+        env: [prod]
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Debug File Structure
+        run: |
+          echo "Listing all files in the repository:"
+          ls -R
+          echo "Listing .tf files in automateAWSRepo/terraform:"
+          ls automateAWSRepo/terraform/*.tf || echo "No .tf files found"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Debug Terraform Installation
+        run: |
+          echo "Terraform version:"
+          terraform --version || echo "Terraform not found"
+          echo "PATH:"
+          echo $PATH
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::590184075527:role/GitHubActionsRole"
+          aws-region: "eu-west-1"
+          role-session-name: GitHubActionsOIDCSession
+
+      - name: Verify Terraform
+        run: aws sts get-caller-identity
+
+      - name: Terraform Init
+        run: terraform init -backend-config="key=env/prod/terraform.tfstate" -reconfigure
+        working-directory: automateAWSRepo/terraform
+
+      - name: Select Workspace
+        run: |
+          terraform workspace select ${{ matrix.env }} || terraform workspace new ${{ matrix.env }}
+        working-directory: automateAWSRepo/terraform
+
+      - name: Terraform Format
+        run: terraform fmt -check
+        working-directory: automateAWSRepo/terraform
+
+      - name: Terraform Plan
+        run: terraform plan
+        working-directory: automateAWSRepo/terraform
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: timeout 600 terraform apply --auto-approve
+        working-directory: automateAWSRepo/terraform
+        continue-on-error: true  # Allow the workflow to continue to the destroy step on failure
+
+      - name: Terraform Destroy on Apply Failure
+        if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform destroy --auto-approve
         working-directory: automateAWSRepo/terraform

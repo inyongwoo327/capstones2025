@@ -3,6 +3,10 @@ resource "aws_s3_bucket" "terraform_state" {
   tags = {
     Environment = "shared"
   }
+
+  lifecycle {
+    ignore_changes = [bucket]
+  }
 }
 
 resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
@@ -29,14 +33,14 @@ resource "aws_s3_bucket_public_access_block" "terraform_state_block" {
   restrict_public_buckets = true
 }
 
-resource "random_id" "frontend_suffix" {
-  byte_length = 4
-}
-
 resource "aws_s3_bucket" "frontend_bucket" {
-  bucket = "${local.s3_bucket_frontend}-${random_id.frontend_suffix.hex}"
+  bucket = local.s3_bucket_frontend
   tags = {
     Environment = local.environment
+  }
+
+  lifecycle {
+    ignore_changes = [bucket]
   }
 }
 
@@ -57,7 +61,9 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
     Statement = [
       {
         Effect    = "Allow"
-        Principal = "*"
+        Principal = {
+          AWS = aws_cloudfront_origin_access_identity.frontend.iam_arn
+        }
         Action    = "s3:GetObject"
         Resource  = "${aws_s3_bucket.frontend_bucket.arn}/*"
       }
@@ -74,14 +80,14 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "frontend_encrypti
   }
 }
 
-resource "random_id" "backend_suffix" {
-  byte_length = 4
-}
-
 resource "aws_s3_bucket" "backend_bucket" {
-  bucket = "${local.s3_bucket_backend}-${random_id.backend_suffix.hex}"
+  bucket = local.s3_bucket_backend
   tags = {
     Environment = local.environment
+  }
+
+  lifecycle {
+    ignore_changes = [bucket]
   }
 }
 
@@ -99,6 +105,14 @@ resource "aws_s3_bucket_policy" "backend_policy" {
           "s3:PutObject",
           "s3:GetObject"
         ]
+        Resource = "${aws_s3_bucket.backend_bucket.arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_iam_role.lambda_exec.arn
+        }
+        Action = "s3:GetObject"
         Resource = "${aws_s3_bucket.backend_bucket.arn}/*"
       }
     ]

@@ -124,6 +124,17 @@ jobs:
             --environment "Variables={ENVIRONMENT=${{ matrix.env }}}" \
             --s3-bucket cicdAWSTerraform-backend-deployment-${{ matrix.env }} \
             --s3-key backend.zip
+      
+      - name: Add API Gateway Permission to Lambda
+        working-directory: ./cicdAWSTerraform/backend
+        run: |
+          aws lambda add-permission \
+            --function-name backend-lambda-${{ matrix.env }} \
+            --statement-id AllowAPIGatewayInvoke \
+            --action lambda:InvokeFunction \
+            --principal apigateway.amazonaws.com \
+            --source-arn "arn:aws:execute-api:${AWS_REGION}:590184075527:*/${{ matrix.env }}/*" || \
+          echo "Permission already exists or function not found"
 
   deploy-frontend:
     name: "Deploy Frontend (dev)"
@@ -288,6 +299,17 @@ jobs:
             --environment "Variables={ENVIRONMENT=${{ matrix.env }}}" \
             --s3-bucket cicdAWSTerraform-backend-deployment-${{ matrix.env }} \
             --s3-key backend.zip
+      
+      - name: Add API Gateway Permission to Lambda
+        working-directory: ./cicdAWSTerraform/backend
+        run: |
+          aws lambda add-permission \
+            --function-name backend-lambda-${{ matrix.env }} \
+            --statement-id AllowAPIGatewayInvoke \
+            --action lambda:InvokeFunction \
+            --principal apigateway.amazonaws.com \
+            --source-arn "arn:aws:execute-api:${AWS_REGION}:590184075527:*/${{ matrix.env }}/*" || \
+          echo "Permission already exists or function not found"
 
   deploy-prod-frontend:
     name: "Deploy Frontend (prod)"

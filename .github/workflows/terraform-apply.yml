@@ -1,4 +1,4 @@
-name: Terraform Apply and Cleanup
+name: Terraform Apply and Deploy
 
 on:
   push:
@@ -74,7 +74,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: timeout 600 terraform apply --auto-approve
         working-directory: automateAWSRepo/terraform
-        continue-on-error: true  # Allow the workflow to continue to the destroy step on failure
+        continue-on-error: true
 
       - name: Terraform Destroy on Apply Failure
         if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -149,7 +149,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: timeout 600 terraform apply --auto-approve
         working-directory: automateAWSRepo/terraform
-        continue-on-error: true  # Allow the workflow to continue to the destroy step on failure
+        continue-on-error: true
 
       - name: Terraform Destroy on Apply Failure
         if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'

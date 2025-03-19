@@ -38,7 +38,6 @@ resource "aws_s3_bucket" "frontend_bucket" {
   tags = {
     Environment = local.environment
   }
-
   lifecycle {
     ignore_changes = [bucket]
   }
@@ -85,7 +84,6 @@ resource "aws_s3_bucket" "backend_bucket" {
   tags = {
     Environment = local.environment
   }
-
   lifecycle {
     ignore_changes = [bucket]
   }

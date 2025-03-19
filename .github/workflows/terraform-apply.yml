@@ -74,19 +74,108 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: timeout 600 terraform apply --auto-approve
         working-directory: automateAWSRepo/terraform
-        continue-on-error: true
 
       - name: Terraform Destroy on Apply Failure
         if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform destroy --auto-approve
         working-directory: automateAWSRepo/terraform
 
+  deploy-backend:
+    name: "Deploy Backend (dev)"
+    runs-on: ubuntu-latest
+    needs: terraform-dev
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    strategy:
+      matrix:
+        env: [dev]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::590184075527:role/GitHubActionsRole"
+          aws-region: "eu-west-1"
+          role-session-name: GitHubActionsOIDCSession
+
+      - name: Install backend dependencies
+        working-directory: ./automateAWSRepo/backend
+        run: npm install
+
+      - name: Package backend
+        working-directory: ./automateAWSRepo/backend
+        run: zip -r backend.zip .
+
+      - name: Deploy backend to S3
+        working-directory: ./automateAWSRepo/backend
+        run: |
+          aws s3 cp backend.zip s3://evanwoo327-backend-deployment-${{ matrix.env }}/backend.zip
+
+      - name: Create or Update Lambda Function
+        working-directory: ./automateAWSRepo/backend
+        run: |
+          aws lambda update-function-code --function-name backend-lambda-${{ matrix.env }} --s3-bucket evanwoo327-backend-deployment-${{ matrix.env }} --s3-key backend.zip || \
+          aws lambda create-function \
+            --function-name backend-lambda-${{ matrix.env }} \
+            --runtime nodejs20.x \
+            --role arn:aws:iam::590184075527:role/backend-lambda-${{ matrix.env }}-exec-role \
+            --handler index.handler \
+            --environment "Variables={ENVIRONMENT=${{ matrix.env }}}" \
+            --s3-bucket evanwoo327-backend-deployment-${{ matrix.env }} \
+            --s3-key backend.zip
+
+  deploy-frontend:
+    name: "Deploy Frontend (dev)"
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    strategy:
+      matrix:
+        env: [dev]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::590184075527:role/GitHubActionsRole"
+          aws-region: "eu-west-1"
+          role-session-name: GitHubActionsOIDCSession
+
+      - name: Get API Gateway URL
+        working-directory: ./automateAWSRepo/terraform
+        run: |
+          API_URL=$(terraform output -raw backend_api_gateway_url)
+          echo "VITE_API_URL=$API_URL" >> $GITHUB_ENV
+
+      - name: Install frontend dependencies
+        working-directory: ./automateAWSRepo/frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: ./automateAWSRepo/frontend
+        env:
+          VITE_API_URL: ${{ env.VITE_API_URL }}
+        run: npm run build  # Builds static files for production, no npm run serve needed
+
+      - name: Deploy frontend to S3
+        working-directory: ./automateAWSRepo/frontend
+        run: |
+          aws s3 sync ./dist/ s3://evanwoo327-frontend-deployment-${{ matrix.env }}/ --delete
+
+      - name: Invalidate CloudFront cache
+        working-directory: ./automateAWSRepo
+        run: |
+          aws cloudfront create-invalidation --distribution-id $(terraform -chdir=terraform output -raw cloudfront_distribution_id) --paths "/*"
+
   terraform-prod:
     name: "Terraform Apply (prod)"
     runs-on: ubuntu-latest
     env:
       AWS_REGION: "eu-west-1"
-    needs: terraform-dev
+    needs: deploy-frontend  # Only runs if deploy-frontend (and thus terraform-dev and deploy-backend) succeeds
     strategy:
       matrix:
         env: [prod]
@@ -149,9 +238,98 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: timeout 600 terraform apply --auto-approve
         working-directory: automateAWSRepo/terraform
-        continue-on-error: true
 
       - name: Terraform Destroy on Apply Failure
         if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform destroy --auto-approve
         working-directory: automateAWSRepo/terraform
+
+  deploy-prod-backend:
+    name: "Deploy Backend (prod)"
+    runs-on: ubuntu-latest
+    needs: terraform-prod
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    strategy:
+      matrix:
+        env: [prod]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::590184075527:role/GitHubActionsRole"
+          aws-region: "eu-west-1"
+          role-session-name: GitHubActionsOIDCSession
+
+      - name: Install backend dependencies
+        working-directory: ./automateAWSRepo/backend
+        run: npm install
+
+      - name: Package backend
+        working-directory: ./automateAWSRepo/backend
+        run: zip -r backend.zip .
+
+      - name: Deploy backend to S3
+        working-directory: ./automateAWSRepo/backend
+        run: |
+          aws s3 cp backend.zip s3://evanwoo327-backend-deployment-${{ matrix.env }}/backend.zip
+
+      - name: Create or Update Lambda Function
+        working-directory: ./automateAWSRepo/backend
+        run: |
+          aws lambda update-function-code --function-name backend-lambda-${{ matrix.env }} --s3-bucket evanwoo327-backend-deployment-${{ matrix.env }} --s3-key backend.zip || \
+          aws lambda create-function \
+            --function-name backend-lambda-${{ matrix.env }} \
+            --runtime nodejs20.x \
+            --role arn:aws:iam::590184075527:role/backend-lambda-${{ matrix.env }}-exec-role \
+            --handler index.handler \
+            --environment "Variables={ENVIRONMENT=${{ matrix.env }}}" \
+            --s3-bucket evanwoo327-backend-deployment-${{ matrix.env }} \
+            --s3-key backend.zip
+
+  deploy-prod-frontend:
+    name: "Deploy Frontend (prod)"
+    runs-on: ubuntu-latest
+    needs: deploy-prod-backend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    strategy:
+      matrix:
+        env: [prod]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::590184075527:role/GitHubActionsRole"
+          aws-region: "eu-west-1"
+          role-session-name: GitHubActionsOIDCSession
+
+      - name: Get API Gateway URL
+        working-directory: ./automateAWSRepo/terraform
+        run: |
+          API_URL=$(terraform output -raw backend_api_gateway_url)
+          echo "VITE_API_URL=$API_URL" >> $GITHUB_ENV
+
+      - name: Install frontend dependencies
+        working-directory: ./automateAWSRepo/frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: ./automateAWSRepo/frontend
+        env:
+          VITE_API_URL: ${{ env.VITE_API_URL }}
+        run: npm run build  # Builds static files for production, no npm run serve needed
+
+      - name: Deploy frontend to S3
+        working-directory: ./automateAWSRepo/frontend
+        run: |
+          aws s3 sync ./dist/ s3://evanwoo327-frontend-deployment-${{ matrix.env }}/ --delete
+
+      - name: Invalidate CloudFront cache
+        working-directory: ./automateAWSRepo
+        run: |
+          aws cloudfront create-invalidation --distribution-id $(terraform -chdir=terraform output -raw cloudfront_distribution_id) --paths "/*"

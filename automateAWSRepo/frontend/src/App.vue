@@ -4,10 +4,12 @@ import { defineComponent, ref, onMounted } from "vue";
 export default defineComponent({
   setup() {
     const message = ref("Loading...");
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000"; // Use environment variable or fallback to localhost
 
     onMounted(async () => {
       try {
-        const response = await fetch("http://localhost:3000/");
+      //  const response = await fetch("http://localhost:3000/");
+        const response = await fetch(`${apiUrl}/`);
         const data = await response.json();
         message.value = data.message;
       } catch (error) {

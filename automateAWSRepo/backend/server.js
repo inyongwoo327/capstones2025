@@ -5,7 +5,7 @@ const app = express();
 app.use(cors());
 
 app.get("/", (req, res) => {
-  res.json({ message: "Hello from Backend on macOS!" });
+  res.json({ message: "Hello World!!!" });
 });
 
 const PORT = 3000;

@@ -1,4 +1,4 @@
-# Reference the existing terraform-state-1741561765 bucket
+# The existing terraform-state-1741561765 bucket for saving remote states
 data "aws_s3_bucket" "terraform_state" {
   bucket = "terraform-state-1741561765"
 }

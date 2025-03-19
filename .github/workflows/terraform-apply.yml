@@ -110,19 +110,19 @@ jobs:
       - name: Deploy backend to S3
         working-directory: ./cicdAWSTerraform/backend
         run: |
-          aws s3 cp backend.zip s3://cicdAWSTerraform-backend-deployment-${{ matrix.env }}/backend.zip
+          aws s3 cp backend.zip s3://cicdawsterraform-backend-deployment-${{ matrix.env }}/backend.zip
 
       - name: Create or Update Lambda Function
         working-directory: ./cicdAWSTerraform/backend
         run: |
-          aws lambda update-function-code --function-name backend-lambda-${{ matrix.env }} --s3-bucket cicdAWSTerraform-backend-deployment-${{ matrix.env }} --s3-key backend.zip || \
+          aws lambda update-function-code --function-name backend-lambda-${{ matrix.env }} --s3-bucket cicdawsterraform-backend-deployment-${{ matrix.env }} --s3-key backend.zip || \
           aws lambda create-function \
             --function-name backend-lambda-${{ matrix.env }} \
             --runtime nodejs20.x \
             --role arn:aws:iam::590184075527:role/backend-lambda-${{ matrix.env }}-exec-role \
             --handler index.handler \
             --environment "Variables={ENVIRONMENT=${{ matrix.env }}}" \
-            --s3-bucket cicdAWSTerraform-backend-deployment-${{ matrix.env }} \
+            --s3-bucket cicdawsterraform-backend-deployment-${{ matrix.env }} \
             --s3-key backend.zip
       
       - name: Add API Gateway Permission to Lambda
@@ -174,7 +174,7 @@ jobs:
       - name: Deploy frontend to S3
         working-directory: ./cicdAWSTerraform/frontend
         run: |
-          aws s3 sync ./dist/ s3://cicdAWSTerraform-frontend-deployment-${{ matrix.env }}/ --delete
+          aws s3 sync ./dist/ s3://cicdawsterraform-frontend-deployment-${{ matrix.env }}/ --delete
 
       - name: Invalidate CloudFront cache
         working-directory: ./cicdAWSTerraform
@@ -285,19 +285,19 @@ jobs:
       - name: Deploy backend to S3
         working-directory: ./cicdAWSTerraform/backend
         run: |
-          aws s3 cp backend.zip s3://cicdAWSTerraform-backend-deployment-${{ matrix.env }}/backend.zip
+          aws s3 cp backend.zip s3://cicdawsterraform-backend-deployment-${{ matrix.env }}/backend.zip
 
       - name: Create or Update Lambda Function
         working-directory: ./cicdAWSTerraform/backend
         run: |
-          aws lambda update-function-code --function-name backend-lambda-${{ matrix.env }} --s3-bucket cicdAWSTerraform-backend-deployment-${{ matrix.env }} --s3-key backend.zip || \
+          aws lambda update-function-code --function-name backend-lambda-${{ matrix.env }} --s3-bucket cicdawsterraform-backend-deployment-${{ matrix.env }} --s3-key backend.zip || \
           aws lambda create-function \
             --function-name backend-lambda-${{ matrix.env }} \
             --runtime nodejs20.x \
             --role arn:aws:iam::590184075527:role/backend-lambda-${{ matrix.env }}-exec-role \
             --handler index.handler \
             --environment "Variables={ENVIRONMENT=${{ matrix.env }}}" \
-            --s3-bucket cicdAWSTerraform-backend-deployment-${{ matrix.env }} \
+            --s3-bucket cicdawsterraform-backend-deployment-${{ matrix.env }} \
             --s3-key backend.zip
       
       - name: Add API Gateway Permission to Lambda
@@ -349,7 +349,7 @@ jobs:
       - name: Deploy frontend to S3
         working-directory: ./cicdAWSTerraform/frontend
         run: |
-          aws s3 sync ./dist/ s3://cicdAWSTerraform-frontend-deployment-${{ matrix.env }}/ --delete
+          aws s3 sync ./dist/ s3://cicdawsterraform-frontend-deployment-${{ matrix.env }}/ --delete
 
       - name: Invalidate CloudFront cache
         working-directory: ./cicdAWSTerraform

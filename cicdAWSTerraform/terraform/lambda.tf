@@ -36,21 +36,3 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
     ]
   })
 }
-
-resource "aws_lambda_function" "backend_lambda" {
-  function_name = local.lambda_function_name
-  role          = aws_iam_role.lambda_exec.arn
-  handler       = var.lambda_handler
-  runtime       = var.lambda_runtime
-
-  s3_bucket = aws_s3_bucket.backend_bucket.id
-  s3_key    = "backend.zip"
-  # Remove source_code_hash since the file is not present locally during terraform plan
-  # source_code_hash = filebase64sha256("../backend/backend.zip")
-
-  environment {
-    variables = {
-      ENVIRONMENT = local.environment
-    }
-  }
-}

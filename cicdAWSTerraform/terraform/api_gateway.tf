@@ -41,11 +41,3 @@ resource "aws_api_gateway_stage" "stage" {
     Environment = local.environment
   }
 }
-
-resource "aws_lambda_permission" "apigw" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = "backend-lambda-${local.environment}"
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.backend_api.execution_arn}/*/*"
-}

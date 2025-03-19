@@ -14,14 +14,14 @@ variable "s3_bucket_backend" {
   description = "S3 bucket for storing Lambda deployment package"
   type        = string
   # Remove dynamic default, require input or set via locals
-  default = "evanwoo327-backend-deployment"
+  default = "cicdAWSTerraform-backend-deployment"
 }
 
 variable "s3_bucket_frontend" {
   description = "S3 bucket for hosting frontend application"
   type        = string
   # Remove dynamic default, require input or set via locals
-  default = "evanwoo327-frontend-deployment"
+  default = "cicdAWSTerraform-frontend-deployment"
 }
 
 variable "api_gateway_name" {

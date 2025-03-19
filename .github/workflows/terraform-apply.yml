@@ -28,8 +28,8 @@ jobs:
         run: |
           echo "Listing all files in the repository:"
           ls -R
-          echo "Listing .tf files in automateAWSRepo/terraform:"
-          ls automateAWSRepo/terraform/*.tf || echo "No .tf files found"
+          echo "Listing .tf files in cicdAWSTerraform/terraform:"
+          ls cicdAWSTerraform/terraform/*.tf || echo "No .tf files found"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -55,30 +55,30 @@ jobs:
 
       - name: Terraform Init
         run: terraform init -backend-config="key=env/${{ matrix.env }}/terraform.tfstate" -reconfigure
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
       - name: Select Workspace
         run: |
           terraform workspace select ${{ matrix.env }} || terraform workspace new ${{ matrix.env }}
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
       - name: Terraform Format
         run: terraform fmt -check
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
       - name: Terraform Plan
         run: terraform plan
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: timeout 600 terraform apply --auto-approve
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
       - name: Terraform Destroy on Apply Failure
         if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform destroy --auto-approve
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
   deploy-backend:
     name: "Deploy Backend (dev)"
@@ -100,30 +100,41 @@ jobs:
           role-session-name: GitHubActionsOIDCSession
 
       - name: Install backend dependencies
-        working-directory: ./automateAWSRepo/backend
+        working-directory: ./cicdAWSTerraform/backend
         run: npm install
 
       - name: Package backend
-        working-directory: ./automateAWSRepo/backend
+        working-directory: ./cicdAWSTerraform/backend
         run: zip -r backend.zip .
 
       - name: Deploy backend to S3
-        working-directory: ./automateAWSRepo/backend
+        working-directory: ./cicdAWSTerraform/backend
         run: |
-          aws s3 cp backend.zip s3://evanwoo327-backend-deployment-${{ matrix.env }}/backend.zip
+          aws s3 cp backend.zip s3://cicdAWSTerraform-backend-deployment-${{ matrix.env }}/backend.zip
 
       - name: Create or Update Lambda Function
-        working-directory: ./automateAWSRepo/backend
+        working-directory: ./cicdAWSTerraform/backend
         run: |
-          aws lambda update-function-code --function-name backend-lambda-${{ matrix.env }} --s3-bucket evanwoo327-backend-deployment-${{ matrix.env }} --s3-key backend.zip || \
+          aws lambda update-function-code --function-name backend-lambda-${{ matrix.env }} --s3-bucket cicdAWSTerraform-backend-deployment-${{ matrix.env }} --s3-key backend.zip || \
           aws lambda create-function \
             --function-name backend-lambda-${{ matrix.env }} \
             --runtime nodejs20.x \
             --role arn:aws:iam::590184075527:role/backend-lambda-${{ matrix.env }}-exec-role \
             --handler index.handler \
             --environment "Variables={ENVIRONMENT=${{ matrix.env }}}" \
-            --s3-bucket evanwoo327-backend-deployment-${{ matrix.env }} \
+            --s3-bucket cicdAWSTerraform-backend-deployment-${{ matrix.env }} \
             --s3-key backend.zip
+      
+      - name: Add API Gateway Permission to Lambda
+        working-directory: ./cicdAWSTerraform/backend
+        run: |
+          aws lambda add-permission \
+            --function-name backend-lambda-${{ matrix.env }} \
+            --statement-id AllowAPIGatewayInvoke \
+            --action lambda:InvokeFunction \
+            --principal apigateway.amazonaws.com \
+            --source-arn "arn:aws:execute-api:${AWS_REGION}:590184075527:*/${{ matrix.env }}/*" || \
+          echo "Permission already exists or function not found"
 
   deploy-frontend:
     name: "Deploy Frontend (dev)"
@@ -145,28 +156,28 @@ jobs:
           role-session-name: GitHubActionsOIDCSession
 
       - name: Get API Gateway URL
-        working-directory: ./automateAWSRepo/terraform
+        working-directory: ./cicdAWSTerraform/terraform
         run: |
           API_URL=$(terraform output -raw backend_api_gateway_url)
           echo "VITE_API_URL=$API_URL" >> $GITHUB_ENV
 
       - name: Install frontend dependencies
-        working-directory: ./automateAWSRepo/frontend
+        working-directory: ./cicdAWSTerraform/frontend
         run: npm install
 
       - name: Build frontend
-        working-directory: ./automateAWSRepo/frontend
+        working-directory: ./cicdAWSTerraform/frontend
         env:
           VITE_API_URL: ${{ env.VITE_API_URL }}
         run: npm run build  # Builds static files for production, no npm run serve needed
 
       - name: Deploy frontend to S3
-        working-directory: ./automateAWSRepo/frontend
+        working-directory: ./cicdAWSTerraform/frontend
         run: |
-          aws s3 sync ./dist/ s3://evanwoo327-frontend-deployment-${{ matrix.env }}/ --delete
+          aws s3 sync ./dist/ s3://cicdAWSTerraform-frontend-deployment-${{ matrix.env }}/ --delete
 
       - name: Invalidate CloudFront cache
-        working-directory: ./automateAWSRepo
+        working-directory: ./cicdAWSTerraform
         run: |
           aws cloudfront create-invalidation --distribution-id $(terraform -chdir=terraform output -raw cloudfront_distribution_id) --paths "/*"
 
@@ -192,8 +203,8 @@ jobs:
         run: |
           echo "Listing all files in the repository:"
           ls -R
-          echo "Listing .tf files in automateAWSRepo/terraform:"
-          ls automateAWSRepo/terraform/*.tf || echo "No .tf files found"
+          echo "Listing .tf files in cicdAWSTerraform/terraform:"
+          ls cicdAWSTerraform/terraform/*.tf || echo "No .tf files found"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -219,30 +230,30 @@ jobs:
 
       - name: Terraform Init
         run: terraform init -backend-config="key=env/prod/terraform.tfstate" -reconfigure
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
       - name: Select Workspace
         run: |
           terraform workspace select ${{ matrix.env }} || terraform workspace new ${{ matrix.env }}
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
       - name: Terraform Format
         run: terraform fmt -check
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
       - name: Terraform Plan
         run: terraform plan
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: timeout 600 terraform apply --auto-approve
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
       - name: Terraform Destroy on Apply Failure
         if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform destroy --auto-approve
-        working-directory: automateAWSRepo/terraform
+        working-directory: cicdAWSTerraform/terraform
 
   deploy-prod-backend:
     name: "Deploy Backend (prod)"
@@ -264,30 +275,41 @@ jobs:
           role-session-name: GitHubActionsOIDCSession
 
       - name: Install backend dependencies
-        working-directory: ./automateAWSRepo/backend
+        working-directory: ./cicdAWSTerraform/backend
         run: npm install
 
       - name: Package backend
-        working-directory: ./automateAWSRepo/backend
+        working-directory: ./cicdAWSTerraform/backend
         run: zip -r backend.zip .
 
       - name: Deploy backend to S3
-        working-directory: ./automateAWSRepo/backend
+        working-directory: ./cicdAWSTerraform/backend
         run: |
-          aws s3 cp backend.zip s3://evanwoo327-backend-deployment-${{ matrix.env }}/backend.zip
+          aws s3 cp backend.zip s3://cicdAWSTerraform-backend-deployment-${{ matrix.env }}/backend.zip
 
       - name: Create or Update Lambda Function
-        working-directory: ./automateAWSRepo/backend
+        working-directory: ./cicdAWSTerraform/backend
         run: |
-          aws lambda update-function-code --function-name backend-lambda-${{ matrix.env }} --s3-bucket evanwoo327-backend-deployment-${{ matrix.env }} --s3-key backend.zip || \
+          aws lambda update-function-code --function-name backend-lambda-${{ matrix.env }} --s3-bucket cicdAWSTerraform-backend-deployment-${{ matrix.env }} --s3-key backend.zip || \
           aws lambda create-function \
             --function-name backend-lambda-${{ matrix.env }} \
             --runtime nodejs20.x \
             --role arn:aws:iam::590184075527:role/backend-lambda-${{ matrix.env }}-exec-role \
             --handler index.handler \
             --environment "Variables={ENVIRONMENT=${{ matrix.env }}}" \
-            --s3-bucket evanwoo327-backend-deployment-${{ matrix.env }} \
+            --s3-bucket cicdAWSTerraform-backend-deployment-${{ matrix.env }} \
             --s3-key backend.zip
+      
+      - name: Add API Gateway Permission to Lambda
+        working-directory: ./cicdAWSTerraform/backend
+        run: |
+          aws lambda add-permission \
+            --function-name backend-lambda-${{ matrix.env }} \
+            --statement-id AllowAPIGatewayInvoke \
+            --action lambda:InvokeFunction \
+            --principal apigateway.amazonaws.com \
+            --source-arn "arn:aws:execute-api:${AWS_REGION}:590184075527:*/${{ matrix.env }}/*" || \
+          echo "Permission already exists or function not found"
 
   deploy-prod-frontend:
     name: "Deploy Frontend (prod)"
@@ -309,27 +331,27 @@ jobs:
           role-session-name: GitHubActionsOIDCSession
 
       - name: Get API Gateway URL
-        working-directory: ./automateAWSRepo/terraform
+        working-directory: ./cicdAWSTerraform/terraform
         run: |
           API_URL=$(terraform output -raw backend_api_gateway_url)
           echo "VITE_API_URL=$API_URL" >> $GITHUB_ENV
 
       - name: Install frontend dependencies
-        working-directory: ./automateAWSRepo/frontend
+        working-directory: ./cicdAWSTerraform/frontend
         run: npm install
 
       - name: Build frontend
-        working-directory: ./automateAWSRepo/frontend
+        working-directory: ./cicdAWSTerraform/frontend
         env:
           VITE_API_URL: ${{ env.VITE_API_URL }}
         run: npm run build  # Builds static files for production, no npm run serve needed
 
       - name: Deploy frontend to S3
-        working-directory: ./automateAWSRepo/frontend
+        working-directory: ./cicdAWSTerraform/frontend
         run: |
-          aws s3 sync ./dist/ s3://evanwoo327-frontend-deployment-${{ matrix.env }}/ --delete
+          aws s3 sync ./dist/ s3://cicdAWSTerraform-frontend-deployment-${{ matrix.env }}/ --delete
 
       - name: Invalidate CloudFront cache
-        working-directory: ./automateAWSRepo
+        working-directory: ./cicdAWSTerraform
         run: |
           aws cloudfront create-invalidation --distribution-id $(terraform -chdir=terraform output -raw cloudfront_distribution_id) --paths "/*"

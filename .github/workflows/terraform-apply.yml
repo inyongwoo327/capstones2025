@@ -72,7 +72,7 @@ jobs:
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: timeout 600 terraform apply --auto-approve
+        run: timeout 1200 terraform apply --auto-approve
         working-directory: cicdAWSTerraform/terraform
 
       - name: Terraform Destroy on Apply Failure
@@ -262,7 +262,7 @@ jobs:
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: timeout 600 terraform apply --auto-approve
+        run: timeout 1200 terraform apply --auto-approve
         working-directory: cicdAWSTerraform/terraform
 
       - name: Terraform Destroy on Apply Failure

@@ -8,7 +8,6 @@ export default defineComponent({
 
     onMounted(async () => {
       try {
-      //  const response = await fetch("http://localhost:3000/");
         const response = await fetch(`${apiUrl}/`);
         const data = await response.json();
         message.value = data.message;

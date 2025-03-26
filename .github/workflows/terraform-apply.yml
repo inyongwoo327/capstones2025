@@ -58,6 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: "eu-west-1"
+    needs: terraform-state
     strategy:
       matrix:
         env: [dev]

@@ -67,5 +67,5 @@ variable "iam_role" {
 variable "terraform_state_bucket" {
   description = "S3 bucket for storing Terraform state"
   type        = string
-  default     = "terraform-state-1741561765"
+  default     = "cicdawsterraform-state-bucket"
 }

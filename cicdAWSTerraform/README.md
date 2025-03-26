@@ -5,10 +5,10 @@
 - Configure aws access and secret keys locally
 - Install node and vue for backend and frontend
 
-(2) Grant new AWS account (user) for mentor
-- IAM User (or Role)
+(2) Grant new AWS IAM User account to the mentor
+- IAM User and Role (Permissions)
 - Attach policies
-- Send temporary credentials to mentor
+- Send temporary credentials to the mentor
 
 (3) Application creation
 - Backend: node.js

@@ -1,6 +1,6 @@
 # The existing terraform-state-1741561765 bucket for saving remote states
 data "aws_s3_bucket" "terraform_state" {
-  bucket = "terraform-state-1741561765"
+  bucket = var.terraform_state_bucket
 }
 
 resource "aws_s3_bucket_versioning" "terraform_state_versioning" {

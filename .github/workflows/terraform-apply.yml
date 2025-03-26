@@ -7,6 +7,47 @@ on:
   workflow_dispatch:
 
 jobs:
+  terraform-state:
+    name: "Create Terraform State Bucket"
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: "eu-west-1"
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::590184075527:role/GitHubActionsRole"
+          aws-region: "eu-west-1"
+          role-session-name: GitHubActionsOIDCSession
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: cicdAWSTerraform/terraform-state
+
+      - name: Terraform Apply
+        run: terraform apply --auto-approve
+        working-directory: cicdAWSTerraform/terraform-state
+
+      - name: Get State Bucket Name
+        id: state-bucket
+        run: |
+          BUCKET_NAME=$(terraform output -raw state_bucket_name)
+          echo "STATE_BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
+        working-directory: cicdAWSTerraform/terraform-state
+  
   terraform-dev:
     name: "Terraform Apply (dev)"
     runs-on: ubuntu-latest

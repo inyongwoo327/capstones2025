@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket = var.terraform_state_bucket
-    region = var.aws_region
+    bucket = "cicdawsterraform-state-bucket"
+    region = "eu-west-1"
   }
 }

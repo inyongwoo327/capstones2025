@@ -47,6 +47,11 @@ jobs:
           BUCKET_NAME=$(terraform output -raw state_bucket_name)
           echo "STATE_BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
         working-directory: cicdAWSTerraform/terraform-state
+
+      - name: Terraform Destroy on Apply Failure
+        if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform destroy --auto-approve
+        working-directory: cicdAWSTerraform/terraform-state
   
   terraform-dev:
     name: "Terraform Apply (dev)"
